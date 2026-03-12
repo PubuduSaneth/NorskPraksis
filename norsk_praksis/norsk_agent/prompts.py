@@ -8,10 +8,16 @@ def build_instruction(scenario: dict, state: dict) -> str:
     words_practiced = state.get("words_practiced", [])
     exchange_count = state.get("exchange_count", 0)
     
+    exchange_count = state.get("exchange_count", 0)
+    weak_words = state.get("user:weak_words", [])
+    
     # Base setup
     instruction = f"{persona}\n\nDu må kun snakke NORSK til enhver tid.\n"
     instruction += "Svarene dine må være svært korte (1-2 små setninger).\n"
     instruction += "Dersom brukeren gjør feil, rett dem raskt og vennlig på norsk.\n\n"
+    
+    if weak_words:
+        instruction += f"VIKTIG: I tidligere samtaler har brukeren hatt problemer med disse ordene: {', '.join(weak_words)}.\nPrøv å flette dem inn i samtalen hvis det passer.\n\n"
     
     # Inject state awareness if vocabulary exists
     if vocabulary:

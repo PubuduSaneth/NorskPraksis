@@ -89,7 +89,7 @@ def get_progress(tool_context: Context) -> dict:
     Returns the user's progress in the current scenario.
     
     Args:
-        context: The ADK context.
+        tool_context: The ADK context.
     
     Returns:
         A dictionary with the progress statistics.
@@ -100,7 +100,7 @@ def get_progress(tool_context: Context) -> dict:
         
     scenario = SCENARIOS[active_scenario_id]
     total_words = len(scenario.get("vocabulary", []))
-    practiced = context.state.get("words_practiced", [])
+    practiced = tool_context.state.get("words_practiced", [])
     practiced_count = len(practiced)
     
     return {
@@ -110,3 +110,54 @@ def get_progress(tool_context: Context) -> dict:
         "total_words": total_words,
         "completion_percentage": (practiced_count / total_words) * 100 if total_words > 0 else 0
     }
+
+def end_scenario(tool_context: Context) -> str:
+    """
+    Ends the current practice scenario, calculating accuracy and saving progress to the user's profile.
+    
+    Args:
+        tool_context: The ADK context.
+        
+    Returns:
+        A string summarizing the user's performance and returning to menu mode.
+    """
+    active_scenario_id = tool_context.state.get("active_scenario_id")
+    if not active_scenario_id or active_scenario_id not in SCENARIOS:
+        return "Bruk 'select_scenario' for å velge et scenario først."
+        
+    scenario = SCENARIOS[active_scenario_id]
+    vocab = scenario.get("vocabulary", [])
+    words_practiced = tool_context.state.get("words_practiced", [])
+    
+    target_words = {item["norwegian"] for item in vocab}
+    practiced_set = set(words_practiced)
+    weak_words = target_words - practiced_set
+    
+    completed = tool_context.state.get("user:completed_scenarios", 0)
+    tool_context.state["user:completed_scenarios"] = completed + 1
+    
+    all_weak_words = set(tool_context.state.get("user:weak_words", []))
+    all_weak_words.update(weak_words)
+    tool_context.state["user:weak_words"] = list(all_weak_words)
+    
+    tool_context.state["active_scenario_id"] = None
+    tool_context.state["words_practiced"] = []
+    
+    weak_str = ', '.join(weak_words) if weak_words else 'Ingen'
+    return f"Scenario fullført! Du klarte {len(practiced_set)} av {len(target_words)} ord. Ord for ekstra øving: {weak_str}. Du er nå i meny-modus."
+
+def get_user_profile(tool_context: Context) -> dict:
+    """
+    Retrieves the user's cross-session practice profile and statistics.
+    
+    Args:
+        tool_context: The ADK context.
+        
+    Returns:
+        A dictionary containing the user's statistics across all sessions.
+    """
+    return {
+        "completed_scenarios": tool_context.state.get("user:completed_scenarios", 0),
+        "weak_words": tool_context.state.get("user:weak_words", [])
+    }
+

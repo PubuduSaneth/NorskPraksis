@@ -1,7 +1,8 @@
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
-from .tools import list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+from .tools import list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress, end_scenario, get_user_profile
 from .prompts import build_instruction
 from .scenarios import SCENARIOS
 
@@ -24,27 +25,46 @@ Hvis brukeren står fast eller ber om hjelp til noen ord ("hva sier jeg?", "tren
 Dersom brukeren sier "bytt scenario" eller "new scenario", gå ut av rollen din og tilbake til "meny"-modus for å velge et nytt scenario.
 """
 
-def on_before_agent(callback_context: CallbackContext):
+async def on_before_agent(callback_context: CallbackContext):
     state = callback_context.state
     scenario_id = state.get("active_scenario_id")
+    
+    memory_info = ""
+    # Search memory if no active scenario yet to personalize greeting
+    if not scenario_id:
+        try:
+            memories = await callback_context.search_memory("scenario fullført")
+            if memories and memories.memories:
+                memory_info = "\n\nKontekst fra tidligere samtaler:\n"
+                for mem in memories.memories[-3:]: # last 3 memories
+                    memory_info += f"- {mem.content.parts[0].text if mem.content and mem.content.parts else ''}\n"
+        except Exception:
+            pass
+
     if scenario_id and scenario_id in SCENARIOS:
         scenario = SCENARIOS[scenario_id]
         new_instruction = build_instruction(scenario, state)
         root_agent.instruction = new_instruction
     else:
-        root_agent.instruction = SYSTEM_INSTRUCTION
+        root_agent.instruction = SYSTEM_INSTRUCTION + memory_info
 
-def on_after_agent(callback_context: CallbackContext):
+async def on_after_agent(callback_context: CallbackContext):
     count = callback_context.state.get("exchange_count", 0)
     callback_context.state["exchange_count"] = count + 1
+    
+    try:
+        await callback_context.add_session_to_memory()
+    except Exception:
+        pass
 
 session_service = SqliteSessionService("sessions.db")
+memory_service = InMemoryMemoryService()
 
 root_agent = LlmAgent(
     name="norsk_agent",
     model="gemini-2.5-flash",
     instruction=SYSTEM_INSTRUCTION,
-    tools=[list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress],
+    tools=[list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress, end_scenario, get_user_profile],
     before_agent_callback=on_before_agent,
     after_agent_callback=on_after_agent,
 )
