@@ -1,0 +1,19 @@
+[project]
+name = "norsk-praksis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Pubudu Saneth Samarakoon", email = "saneth.samarakoon@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "google-adk>=1.26.0",
+]
+
+[project.scripts]
+norsk-praksis = "norsk_praksis:main"
+
+[build-system]
+requires = ["uv_build>=0.9.15,<0.10.0"]
+build-backend = "uv_build"
