@@ -4,6 +4,9 @@ from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
 from google.genai.types import GenerateContentConfig, ThinkingConfig
 from google.adk.agents.run_config import RunConfig, StreamingMode
+import os
+import sys
+from google.adk.tools.mcp_tool import McpToolset
 from .tools import list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress, end_scenario, get_user_profile
 from .prompts import build_instruction
 from .scenarios import SCENARIOS
@@ -23,6 +26,8 @@ Hold svarene dine svært korte (1-2 små setninger).
 Dersom brukeren gjør grammatikkfeil eller uttaler noe feil, gi en rask og vennlig korreksjon på norsk.
 
 Hvis brukeren står fast eller ber om hjelp til noen ord ("hva sier jeg?", "trenger vokabular"), bruk `get_vocabulary`-verktøyet for det valgte scenarioet og foreslå 2-3 relevante norske uttrykk med engelsk oversettelse.
+
+VIKTIG: Hvis brukeren spør om betydningen eller definisjonen av et ord ("hva betyr", "definer", "hva er"), MÅ du bruke `lookup_word` verktøyet fra det eksterne registeret. Hvis MCP-serveren ikke svarer eller feiler, bruk den lokale kunnskapen din som fallback.
 
 Dersom brukeren sier "bytt scenario" eller "new scenario", gå ut av rollen din og tilbake til "meny"-modus for å velge et nytt scenario.
 """
@@ -64,11 +69,21 @@ memory_service = InMemoryMemoryService()
 
 MODEL_ID = "gemini-live-2.5-flash-native-audio"
 
+from mcp import StdioServerParameters
+
+mcp_toolset = McpToolset(
+    connection_params=StdioServerParameters(
+        command="uv",
+        args=["run", os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_vocab_server.py")],
+    ),
+    use_mcp_resources=True
+)
+
 root_agent = LlmAgent(
     name="norsk_agent",
     model=MODEL_ID,
     instruction=SYSTEM_INSTRUCTION,
-    tools=[list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress, end_scenario, get_user_profile],
+    tools=[list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress, end_scenario, get_user_profile, mcp_toolset],
     before_agent_callback=on_before_agent,
     after_agent_callback=on_after_agent,
 )
