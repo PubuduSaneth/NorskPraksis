@@ -2,6 +2,8 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+from google.genai.types import GenerateContentConfig, ThinkingConfig
+from google.adk.agents.run_config import RunConfig, StreamingMode
 from .tools import list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress, end_scenario, get_user_profile
 from .prompts import build_instruction
 from .scenarios import SCENARIOS
@@ -60,9 +62,11 @@ async def on_after_agent(callback_context: CallbackContext):
 session_service = SqliteSessionService("sessions.db")
 memory_service = InMemoryMemoryService()
 
+MODEL_ID = "gemini-live-2.5-flash-native-audio"
+
 root_agent = LlmAgent(
     name="norsk_agent",
-    model="gemini-2.5-flash",
+    model=MODEL_ID,
     instruction=SYSTEM_INSTRUCTION,
     tools=[list_scenarios, select_scenario, get_vocabulary, mark_word_practiced, get_progress, end_scenario, get_user_profile],
     before_agent_callback=on_before_agent,
