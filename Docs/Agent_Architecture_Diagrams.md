@@ -18,19 +18,19 @@ This document provides visual representations of agent architecture concepts and
                           │  (Norwegian)    │
                           └────────┬────────┘
                                    │
-                    ┌──────────────▼──────────────┐
-                    │  1. CONTEXT PREPARATION     │
-                    │  (on_before_agent callback) │
-                    │                            │
-                    │  • Retrieve session state   │
-                    │  • Search memory (if new)   │
-                    │  • Build dynamic instruction│
-                    │  • Set root_agent.instruction
-                    └──────────────┬──────────────┘
+                    ┌──────────────▼────────────────┐
+                    │  1. CONTEXT PREPARATION       │
+                    │  (on_before_agent callback)   │
+                    │                               │
+                    │  • Retrieve session state     │
+                    │  • Search memory (if new)     │
+                    │  • Build dynamic instruction  │
+                    │  • Set root_agent.instruction |
+                    └──────────────┬────────────────┘
                                    │
-                    ┌──────────────▼──────────────┐
-                    │  2. AGENT REASONING         │
-                    │  (LLM Internal Loop)        │
+                    ┌──────────────▼─────────────┐
+                    │  2. AGENT REASONING        │
+                    │  (LLM Internal Loop)       │
                     │                            │
                     │  ┌────────────────────┐    │
                     │  │ a) Observe         │    │
@@ -57,34 +57,34 @@ This document provides visual representations of agent architecture concepts and
                     │  │    (Norwegian text)│    │
                     │  └────────────────────┘    │
                     │                            │
-                    └──────────────┬──────────────┘
+                    └──────────────┬─────────────┘
                                    │
                     ┌──────────────▼──────────────┐
                     │  3. TOOL EXECUTION          │
-                    │                            │
+                    │                             │
                     │  Each tool:                 │
-                    │  ├─ Takes context as input │
+                    │  ├─ Takes context as input  │
                     │  ├─ May modify state        │
                     │  └─ Returns result          │
-                    │                            │
+                    │                             │
                     │  Example sequence:          │
                     │  • select_scenario("cafe")  │
                     │    → State: active_scenario │
-                    │    → Return: persona, etc. │
+                    │    → Return: persona, etc.  │
                     │  • mark_word_practiced()    │
                     │    → State: words_practiced │
-                    │    → Return: confirmation  │
+                    │    → Return: confirmation   │
                     └──────────────┬──────────────┘
                                    │
-                    ┌──────────────▼──────────────┐
-                    │  4. STATE PERSISTENCE       │
-                    │  (on_after_agent callback)  │
-                    │                            │
-                    │  • Increment exchange_count │
-                    │  • Serialize session        │
-                    │    to memory                │
-                    │  • Handle failures gracefully
-                    └──────────────┬──────────────┘
+                    ┌──────────────▼────────────────┐
+                    │  4. STATE PERSISTENCE         │
+                    │  (on_after_agent callback)    │
+                    │                               │
+                    │  • Increment exchange_count   │
+                    │  • Serialize session          │
+                    │    to memory                  │
+                    │  • Handle failures gracefully |
+                    └──────────────┬────────────────┘
                                    │
                           ┌────────▼────────┐
                           │  Response to    │
@@ -105,7 +105,7 @@ This document provides visual representations of agent architecture concepts and
 
 TURN 0 (Initial):
 ┌──────────────────────────────────┐
-│ State = {}                        │
+│ State = {}                       │
 │ (Empty, first-time user)         │
 └──────────────────────────────────┘
         │
@@ -114,10 +114,10 @@ TURN 0 (Initial):
         │
 TURN 1 (After select_scenario):
 ┌──────────────────────────────────┐
-│ State = {                         │
+│ State = {                        │
 │   active_scenario_id: "cafe",    │
-│   words_practiced: [],            │
-│   exchange_count: 0               │
+│   words_practiced: [],           │
+│   exchange_count: 0              │
 │ }                                │
 └──────────────────────────────────┘
         │
@@ -127,12 +127,12 @@ TURN 1 (After select_scenario):
         │
 TURN 2 (After mark_word_practiced + on_after_agent):
 ┌──────────────────────────────────┐
-│ State = {                         │
+│ State = {                        │
 │   active_scenario_id: "cafe",    │
-│   words_practiced: [              │
+│   words_practiced: [             │
 │     "en kaffe"                   │
 │   ],                             │
-│   exchange_count: 1               │
+│   exchange_count: 1              │
 │ }                                │
 └──────────────────────────────────┘
         │
@@ -141,17 +141,17 @@ TURN 2 (After mark_word_practiced + on_after_agent):
         │
 TURN 7 (After 5 more exchanges):
 ┌──────────────────────────────────┐
-│ State = {                         │
+│ State = {                        │
 │   active_scenario_id: "cafe",    │
-│   words_practiced: [              │
+│   words_practiced: [             │
 │     "en kaffe",                  │
 │     "å betale",                  │
-│     "kort eller kontant?",        │
+│     "kort eller kontant?",       │
 │     "kvittering",                │
 │     "melk",                      │
 │     "vær så snill"               │
 │   ],                             │
-│   exchange_count: 6               │
+│   exchange_count: 6              │
 │ }                                │
 └──────────────────────────────────┘
         │
@@ -165,12 +165,12 @@ TURN 7 (After 5 more exchanges):
         │
 TURN 8 (After end_scenario):
 ┌──────────────────────────────────┐
-│ State = {                         │
-│   active_scenario_id: None,       │
-│   words_practiced: [],            │
-│   exchange_count: 6,              │
-│   user:completed_scenarios: 1,    │
-│   user:weak_words: [              │
+│ State = {                        │
+│   active_scenario_id: None,      │
+│   words_practiced: [],           │
+│   exchange_count: 6,             │
+│   user:completed_scenarios: 1,   │
+│   user:weak_words: [             │
 │     "en bolle",                  │
 │     "en te",                     │
 │     ...                          │
@@ -196,26 +196,26 @@ SESSION 1 (Day 1, Turn-by-turn)
 ┌──────────────────────────────────────────────────┐
 │ Short-Term Memory (Session State)                │
 │                                                  │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ In-memory dict (fast access)                │ │
-│ │ {                                           │ │
-│ │   active_scenario_id: "cafe",              │ │
-│ │   words_practiced: ["en kaffe", "å betale"]│ │
-│ │   exchange_count: 5                        │ │
-│ │ }                                           │ │
-│ └─────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────┐  │
+│ │ In-memory dict (fast access)                │  │
+│ │ {                                           │  │
+│ │   active_scenario_id: "cafe",               │  │
+│ │   words_practiced: ["en kaffe", "å betale"] │  │
+│ │   exchange_count: 5                         │  │
+│ │ }                                           │  │
+│ └─────────────────────────────────────────────┘  │
 │              │                                   │
-│              │ Persisted (on_after_agent)       │
+│              │ Persisted (on_after_agent)        │
 │              ▼                                   │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ Session record in SQLite                    │ │
-│ │ {                                           │ │
-│ │   session_id: "uuid-123",                   │ │
-│ │   timestamp: "2025-03-13T10:00Z",          │ │
-│ │   state: {full state dict},                │ │
-│ │   messages: [{user, agent} turns]          │ │
-│ │ }                                           │ │
-│ └─────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────┐  │
+│ │ Session record in SQLite                    │  │
+│ │ {                                           │  │
+│ │   session_id: "uuid-123",                   │  │
+│ │   timestamp: "2025-03-13T10:00Z",           │  │
+│ │   state: {full state dict},                 │  │
+│ │   messages: [{user, agent} turns]           │  │
+│ │ }                                           │  │
+│ └─────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────┘
 
 SESSION 2 (Day 2, beginning)
@@ -225,27 +225,27 @@ SESSION 2 (Day 2, beginning)
 │ search_memory("scenario fullført")               │
 │              │                                   │
 │              ▼                                   │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ Long-Term Memory (Persistent)               │ │
-│ │                                             │ │
-│ │ [Session 1 data]                            │ │
-│ │ Session: "User completed cafe scenario"     │ │
-│ │ Weak words: ["kort eller kontant?", ...]   │ │
-│ │                                             │ │
-│ │ [Previous sessions...]                      │ │
-│ │ (Searchable, retrievable)                   │ │
-│ └─────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────┐  │
+│ │ Long-Term Memory (Persistent)               │  │
+│ │                                             │  │
+│ │ [Session 1 data]                            │  │
+│ │ Session: "User completed cafe scenario"     │  │
+│ │ Weak words: ["kort eller kontant?", ...]    │  │
+│ │                                             │  │
+│ │ [Previous sessions...]                      │  │
+│ │ (Searchable, retrievable)                   │  │
+│ └─────────────────────────────────────────────┘  │
 │              │                                   │
-│              │ Use for context                  │
+│              │ Use for context                   │
 │              ▼                                   │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ Dynamic Instruction                         │ │
-│ │                                             │ │
-│ │ "Context: User has completed cafe before"  │ │
-│ │ "Try to practice: kort eller kontant?"     │ │
-│ │                                             │ │
-│ │ (Injected into agent instruction)           │ │
-│ └─────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────┐  │
+│ │ Dynamic Instruction                         │  │
+│ │                                             │  │
+│ │ "Context: User has completed cafe before"   │  │
+│ │ "Try to practice: kort eller kontant?"      │  │
+│ │                                             │  │
+│ │ (Injected into agent instruction)           │  │
+│ └─────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -277,16 +277,16 @@ Content stored from each session:
 
 Queries (in on_before_agent):
 ┌────────────────────────────────────────┐
-│ search_memory("scenario fullført")      │
-│        ↓                                │
+│ search_memory("scenario fullført")     │
+│        ↓                               │
 │ Returns: List of sessions where        │
-│          - Content contains             │
-│            "scenario fullført"          │
-│          - Recent ones first            │
-│          - Typically last 3-5           │
+│          - Content contains            │
+│            "scenario fullført"         │
+│          - Recent ones first           │
+│          - Typically last 3-5          │
 │                                        │
 │ Used to: Construct memory_info         │
-│          for instruction                │
+│          for instruction               │
 └────────────────────────────────────────┘
 
 Example memory_info constructed:
@@ -294,7 +294,7 @@ Example memory_info constructed:
 │ memory_info = "                        │
 │   Kontekst fra tidligere samtaler:     │
 │   - User completed cafe scenario       │
-│   - Struggled with: kort eller        │
+│   - Struggled with: kort eller         │
 │     kontant?, kvittering               │
 │   - Next scenario: hotel               │
 │ "                                      │
@@ -376,13 +376,13 @@ Control flow for select_scenario():
 └────┬─────────┘
      │
      ▼
-┌──────────────────────────┐
-│ Agent reasoning:         │
-│ "User wants hotel       │
-│  scenario"              │
-│ "→ call                 │
-│  select_scenario('hotel')"
-└────┬─────────────────────┘
+┌───────────────────────────┐
+│ Agent reasoning:          │
+│ "User wants hotel         │
+│  scenario"                │
+│ "→ call                   │
+│  select_scenario('hotel')"|
+└────┬──────────────────────┘
      │
      ▼
 ┌──────────────────────────────────┐
@@ -409,20 +409,20 @@ Control flow for select_scenario():
 └────┬─────────────────────────────┘
      │
      ▼
-┌─────────────────────────────────┐
-│ on_before_agent (next turn):     │
-│                                  │
-│ Detects: active_scenario_id = "hotel"
-│ → Calls build_instruction()     │
-│ → Sets NEW instruction with     │
-│   hotel persona                 │
-└────┬────────────────────────────┘
+┌──────────────────────────────────────┐
+│ on_before_agent (next turn):         │
+│                                      │
+│ Detects: active_scenario_id = "hotel"|
+│ → Calls build_instruction()          │
+│ → Sets NEW instruction with          │
+│   hotel persona                      │
+└────┬─────────────────────────────────┘
      │
      ▼
 ┌──────────────────────────────────┐
 │ Agent response with new persona: │
 │                                  │
-│ "Velkommen til oss! Har du en   │
+│ "Velkommen til oss! Har du en    │
 │  reservasjon?"                   │
 │ (Using hotel clerk persona)      │
 └──────────────────────────────────┘
@@ -455,7 +455,7 @@ Control flow:
      ▼
 ┌────────────────────────────────────┐
 │ Agent reasoning:                   │
-│ "User is done with scenario"      │
+│ "User is done with scenario"       │
 │ "→ call end_scenario()"            │
 └────┬───────────────────────────────┘
      │
@@ -479,9 +479,9 @@ Control flow:
 │       weak_words = target - practiced    │
 │                                          │
 │       Example:                           │
-│       target: {kaffe, betale, ..., 12}  │
-│       practiced: {kaffe, betale, ..., 6}│
-│       weak: {en bolle, en te, ..., 6}   │
+│       target: {kaffe, betale, ..., 12}   │
+│       practiced: {kaffe, betale, ..., 6} │
+│       weak: {en bolle, en te, ..., 6}    │
 │                                          │
 │   [4] Update cross-session profile       │
 │       user:completed_scenarios += 1      │
@@ -498,7 +498,7 @@ Control flow:
 │        Ord for ekstra øving: [...]"      │
 │                                          │
 │ State: HEAVILY MODIFIED ✓                │
-└────┬───────────────────────────────────┘
+└────┬─────────────────────────────────────┘
      │
      ▼
 ┌──────────────────────────────────────────┐
@@ -507,17 +507,17 @@ Control flow:
 │ • Increment exchange_count               │
 │ • Serialize session to memory            │
 │   (including weak_words analysis)        │
-└────┬───────────────────────────────────┘
+└────┬─────────────────────────────────────┘
      │
      ▼
 ┌──────────────────────────────────────────┐
 │ Agent response:                          │
 │                                          │
-│ "Gratulerer! Du lærte 6 ord,            │
-│  og 6 trenger mer øving.                │
-│  Disse var utfordrende:                 │
-│  kort eller kontant?, kvittering, ...   │
-│  Vil du øve igjen eller prøve ett       │
+│ "Gratulerer! Du lærte 6 ord,             │
+│  og 6 trenger mer øving.                 │
+│  Disse var utfordrende:                  │
+│  kort eller kontant?, kvittering, ...    │
+│  Vil du øve igjen eller prøve ett        │
 │  nytt scenario?"                         │
 │                                          │
 │ (Back to menu mode)                      │
@@ -546,25 +546,25 @@ TURN 1 - First time, menu mode:
 ┌──────────────────────────────────────────────────────────────┐
 │ System Instruction:                                          │
 │                                                              │
-│ "Du er en vennlig norsk språkpartner.                       │
-│  Du befinner deg i meny-modus.                              │
-│  Bruk list_scenarios for å vise brukeren valg..."           │
+│ "Du er en vennlig norsk språkpartner.                        │
+│  Du befinner deg i meny-modus.                               │
+│  Bruk list_scenarios for å vise brukeren valg..."            │
 │                                                              │
 │ Conversation History:                                        │
 │ (empty - first turn)                                         │
 │                                                              │
 │ User Input:                                                  │
-│ "Hei, jeg vil øve på norsk"                                 │
+│ "Hei, jeg vil øve på norsk"                                  │
 │                                                              │
 │ Tools Available:                                             │
 │ - list_scenarios()                                           │
-│ - select_scenario(scenario_id)                              │
-│ - ... [other tools]                                         │
+│ - select_scenario(scenario_id)                               │
+│ - ... [other tools]                                          │
 │                                                              │
 │ Context Summary:                                             │
 │ - No active scenario                                         │
-│ - No past memory (first time)                               │
-│ - Agent should offer scenario choices                       │
+│ - No past memory (first time)                                │
+│ - Agent should offer scenario choices                        │
 └──────────────────────────────────────────────────────────────┘
 
 Agent outputs: "Hei! Flott at du vil øve. Her er scenarioene:
@@ -575,40 +575,40 @@ Agent outputs: "Hei! Flott at du vil øve. Her er scenarioene:
 
 TURN 2 - User selects cafe:
 ┌──────────────────────────────────────────────────────────────┐
-│ System Instruction (DIFFERENT FROM TURN 1):                 │
+│ System Instruction (DIFFERENT FROM TURN 1):                  │
 │                                                              │
-│ "Du er en vennlig servitør på en kafé i Oslo.              │
-│  Du må kun snakke NORSK.                                    │
-│  Svarene dine må være svært korte (1-2 små setninger).     │
-│  Brukeren prøver å lære følgende ord:                       │
-│  - en kaffe (a coffee)                                      │
-│  - kan jeg få (can I get)                                   │
-│  ... [all 12 vocabulary items]                             │
+│ "Du er en vennlig servitør på en kafé i Oslo.                │
+│  Du må kun snakke NORSK.                                     │
+│  Svarene dine må være svært korte (1-2 små setninger).       │
+│  Brukeren prøver å lære følgende ord:                        │
+│  - en kaffe (a coffee)                                       │
+│  - kan jeg få (can I get)                                    │
+│  ... [all 12 vocabulary items]                               │
 │                                                              │
-│  Prøv å styre samtalen slik at brukeren får bruk for       │
-│  ordene som IKKE er lært ennå."                            │
+│  Prøv å styre samtalen slik at brukeren får bruk for         │
+│  ordene som IKKE er lært ennå."                              │
 │                                                              │
 │ Conversation History:                                        │
-│ User: "Jeg vil velge kafé"                                 │
-│ Agent: [called select_scenario, got back scenario info]    │
-│ Agent: "Veldig bra! Nå er vi på kafé.                     │
-│         Jeg er servitør. Hva kan jeg hjelpe deg med?"      │
+│ User: "Jeg vil velge kafé"                                   │
+│ Agent: [called select_scenario, got back scenario info]      │
+│ Agent: "Veldig bra! Nå er vi på kafé.                        │
+│         Jeg er servitør. Hva kan jeg hjelpe deg med?"        │
 │                                                              │
 │ User Input:                                                  │
-│ "Jeg vil ha en kaffe"                                       │
+│ "Jeg vil ha en kaffe"                                        │
 │                                                              │
 │ Tools Available:                                             │
 │ - list_scenarios()                                           │
-│ - select_scenario(scenario_id)                              │
-│ - mark_word_practiced(word, correct)                        │
+│ - select_scenario(scenario_id)                               │
+│ - mark_word_practiced(word, correct)                         │
 │ - get_vocabulary("cafe")                                     │
-│ - [other tools]                                             │
+│ - [other tools]                                              │
 │                                                              │
 │ Context Summary:                                             │
-│ - Active scenario: "cafe"                                   │
-│ - All vocabulary listed in instruction                      │
-│ - None marked as learned yet                                │
-│ - Agent should recognize "en kaffe" and mark it            │
+│ - Active scenario: "cafe"                                    │
+│ - All vocabulary listed in instruction                       │
+│ - None marked as learned yet                                 │
+│ - Agent should recognize "en kaffe" and mark it              │
 └──────────────────────────────────────────────────────────────┘
 
 Agent reasoning:
@@ -623,37 +623,37 @@ Agent outputs: "Flott! En kaffe. [Marks it learned]
 
 TURN 5 - After 4 exchanges, user asks for help:
 ┌──────────────────────────────────────────────────────────────┐
-│ System Instruction (UPDATED):                               │
+│ System Instruction (UPDATED):                                │
 │                                                              │
-│ "Du er en vennlig servitør på en kafé i Oslo.              │
-│  ... [same as before]                                       │
+│ "Du er en vennlig servitør på en kafé i Oslo.                │
+│  ... [same as before]                                        │
 │                                                              │
-│  Brukeren prøver å lære følgende ord:                       │
-│  - en kaffe (a coffee) [LÆRT] ✓                            │
-│  - kan jeg få (can I get) [LÆRT] ✓                         │
-│  - en bolle (a bun/pastry)                                  │
-│  - å betale (to pay)                                        │
-│  - kort eller kontant? (card or cash?)                      │
-│  ... [remaining unlearned items]                            │
+│  Brukeren prøver å lære følgende ord:                        │
+│  - en kaffe (a coffee) [LÆRT] ✓                              │
+│  - kan jeg få (can I get) [LÆRT] ✓                           │
+│  - en bolle (a bun/pastry)                                   │
+│  - å betale (to pay)                                         │
+│  - kort eller kontant? (card or cash?)                       │
+│  ... [remaining unlearned items]                             │
 │                                                              │
-│  Prøv å styre samtalen slik at brukeren får bruk for       │
-│  ordene som IKKE er lært ennå.                             │
+│  Prøv å styre samtalen slik at brukeren får bruk for         │
+│  ordene som IKKE er lært ennå.                               │
 │                                                              │
-│  Dere har snakket sammen i 4 utvekslinger. Fortsett        │
+│  Dere har snakket sammen i 4 utvekslinger. Fortsett          │
 │  naturlig."                                                  │
 │                                                              │
 │ Conversation History:                                        │
-│ [4 full exchanges showing vocabulary use]                   │
+│ [4 full exchanges showing vocabulary use]                    │
 │                                                              │
 │ User Input:                                                  │
-│ "Hva sier jeg hvis jeg vil betale?"                        │
+│ "Hva sier jeg hvis jeg vil betale?"                          │
 │                                                              │
 │ Context Summary:                                             │
-│ - Active scenario: "cafe"                                   │
-│ - 2 words learned [shown with [LÆRT]]                      │
-│ - 10 words remaining [no marker]                            │
-│ - Exchange count: 4 (continuity indicator)                  │
-│ - User asking for vocabulary help                           │
+│ - Active scenario: "cafe"                                    │
+│ - 2 words learned [shown with [LÆRT]]                        │
+│ - 10 words remaining [no marker]                             │
+│ - Exchange count: 4 (continuity indicator)                   │
+│ - User asking for vocabulary help                            │
 └──────────────────────────────────────────────────────────────┘
 
 Agent outputs: "Flott spørsmål! Du kan si:
@@ -690,14 +690,14 @@ This is MORE efficient than a static instruction, because:
 Agent sees these as ONE tool set:
 ┌──────────────────────────────────────────────────────────────┐
 │ root_agent.tools = [                                         │
-│   list_scenarios,          ← Local Python function          │
-│   select_scenario,         ← Local Python function          │
-│   get_vocabulary,          ← Local Python function          │
-│   mark_word_practiced,     ← Local Python function          │
-│   get_progress,            ← Local Python function          │
-│   end_scenario,            ← Local Python function          │
-│   get_user_profile,        ← Local Python function          │
-│   mcp_toolset              ← Proxy to external MCP server   │
+│   list_scenarios,          ← Local Python function           │
+│   select_scenario,         ← Local Python function           │
+│   get_vocabulary,          ← Local Python function           │
+│   mark_word_practiced,     ← Local Python function           │
+│   get_progress,            ← Local Python function           │
+│   end_scenario,            ← Local Python function           │
+│   get_user_profile,        ← Local Python function           │
+│   mcp_toolset              ← Proxy to external MCP server    │
 │ ]                                                            │
 └──────────────────────────────────────────────────────────────┘
 
@@ -716,9 +716,9 @@ MCP TOOLS:
 ┌──────────────────────────────────────────────────────────────┐
 │ mcp_toolset =                                                │
 │   McpToolset(connection_params=...)                          │
-│    ├─ Starts external process (mcp_vocab_server.py)         │
+│    ├─ Starts external process (mcp_vocab_server.py)          │
 │    ├─ Communicates via stdio JSON-RPC                        │
-│    ├─ Discovers tools dynamically (lookup_word, etc.)       │
+│    ├─ Discovers tools dynamically (lookup_word, etc.)        │
 │    ├─ Marshals arguments to JSON                             │
 │    ├─ Unmarshals results from JSON                           │
 │    └─ Handles errors gracefully                              │
@@ -726,13 +726,13 @@ MCP TOOLS:
 
 From agent's perspective:
 ┌──────────────────────────────────────────────────────────────┐
-│ Agent calls:                                                  │
+│ Agent calls:                                                 │
 │   mark_word_practiced("en kaffe", true)  ← Local tool        │
 │   lookup_word("kaffe")                  ← MCP tool (indirect)│
 │                                                              │
-│ Both appear as tool invocations in reasoning                │
-│ Both return structured results                              │
-│ But implementation is completely different!                 │
+│ Both appear as tool invocations in reasoning                 │
+│ Both return structured results                               │
+│ But implementation is completely different!                  │
 └──────────────────────────────────────────────────────────────┘
 
 Benefits:
@@ -795,7 +795,7 @@ RETRIEVAL (For Long-Term Memory):
 │                                        │
 │ search_memory("scenario fullført")     │
 │   ↓                                    │
-│   Queries SQLite sessions               │
+│   Queries SQLite sessions              │
 │   ↓                                    │
 │   Returns last N matching sessions     │
 │   ↓                                    │
@@ -804,7 +804,7 @@ RETRIEVAL (For Long-Term Memory):
 │ memory_info = "                        │
 │   Kontekst fra tidligere samtaler:     │
 │   - User completed cafe scenario       │
-│   - Struggled with: kort eller        │
+│   - Struggled with: kort eller         │
 │     kontant?                           │
 │ "                                      │
 └────┬───────────────────────────────────┘
@@ -818,10 +818,10 @@ NEW SESSION (Informed by Memory):
 │   SYSTEM_INSTRUCTION +                 │
 │   memory_info +                        │
 │   (if scenario active: scenario-       │
-│    specific instruction)                │
+│    specific instruction)               │
 │                                        │
 │ Result: Agent can:                     │
-│  • Recognize returning user             │
+│  • Recognize returning user            │
 │  • Refer to past progress              │
 │  • Focus on weak areas                 │
 │  • Maintain continuity                 │
@@ -893,7 +893,7 @@ Timeline:
         │  Local Tools:                      │
         │  ├─ Read/write to state            │
         │  └─ Return results                 │
-        │                                   │
+        │                                    │
         │  MCP Tools:                        │
         │  ├─ Remote call via stdio          │
         │  └─ Return results                 │
@@ -915,13 +915,12 @@ Timeline:
 
 Parallel storage:
 ┌─────────────────────────────────────────────────────────────┐
-│ Session State (Fast)      │ Long-Term Memory (Queryable)   │
-│ ─────────────────────     │ ──────────────────────────────│
-│ In-memory dict            │ SQLite Database               │
-│ • active_scenario_id      │ • Session history             │
-│ • words_practiced         │ • User profiles               │
-│ • exchange_count          │ • Analysis (weak_words, etc.) │
-│                           │ • Searchable, persistent      │
+│ Session State (Fast)      │ Long-Term Memory (Queryable)    │
+│ ─────────────────────     │ ────────────────────────────────│
+│ In-memory dict            │ SQLite Database                 │
+│ • active_scenario_id      │ • Session history               │
+│ • words_practiced         │ • User profiles                 │
+│ • exchange_count          │ • Analysis (weak_words, etc.)   │
+│                           │ • Searchable, persistent        │
 └─────────────────────────────────────────────────────────────┘
 ```
-

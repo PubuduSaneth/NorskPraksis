@@ -1,290 +1,95 @@
-# Norwegian Language Learning Agent - Documentation
+# NorskPraksis - Norwegian Language Learning Agent
 
 This repository contains a real-world agent implementation designed to teach agent development concepts using the Google Agent Development Kit (ADK).
 
 ## Overview
 
 The **Norwegian Language Learning Agent** is a multi-turn conversational agent that:
+
 - Guides users through language practice scenarios (café, hotel, train station, etc.)
 - Dynamically tracks vocabulary mastery
 - Learns from user mistakes and focuses on weak areas
 - Maintains persistent user profiles across sessions
 - Integrates external tools via the Model Context Protocol (MCP)
 
-## Documentation Structure
+## Architecture
 
-This documentation set explains agent development concepts through concrete code examples from this implementation.
+The system is built on the Google Agent Development Kit (ADK) and centers on a single `LlmAgent` that orchestrates the entire learning flow:
 
-### 1. **Agent_Development_Guide.md** - Main Concepts
-Start here. This document explains:
-- **Core Anatomy and Taxonomy of Agents**
-  - The agent's operational loop (perceive → reason → act → persist)
-  - Taxonomy of agent capabilities (observation, action, communication, memory, tool integration)
-
-- **Tools, Interoperability, and MCP**
-  - Tool design best practices
-  - The Model Context Protocol architecture
-  - Transport mechanism (stdio-based JSON-RPC)
-
-- **Context Engineering – Sessions and Persistent Memory**
-  - Session management and state evolution
-  - Two-tier memory architecture (short-term + long-term)
-  - How memory informs agent behavior
-
-### 2. **Agent_Deep_Dive.md** - Code Walkthrough
-Detailed line-by-line analysis of each component:
-- **agent.py**: Agent setup, callbacks, service initialization
-- **tools.py**: Seven tool implementations with architectural patterns
-- **scenarios.py**: Scenario data structures as configuration
-- **prompts.py**: Dynamic instruction generation
-- Concrete state evolution example showing the learning journey
-
-### 3. **Agent_Architecture_Diagrams.md** - Visual Guides
-ASCII diagrams and visual representations:
-- Detailed operational loop with all four phases
-- Session state evolution over time
-- Two-tier memory system (short-term vs. long-term)
-- Tool invocation patterns (observation vs. action vs. orchestration)
-- Context window evolution as conversation progresses
-- Complete system architecture overview
+- **Operational loop.** The agent lifecyle (detailed in `Docs/Agent_Architecture_Diagrams.md`) cycles through context preparation (`on_before_agent`), LLM reasoning, MCP/local tool invocation, and state persistence (`on_after_agent`). This separation keeps instruction assembly, tool planning, and response generation loosely coupled and easy to test.
+- **State and memory.** Short-term state lives in an ADK session service (SQLite), while long-term conversation summaries are stored via the memory service. Before each turn the agent can retrieve the three most recent memories to personalize the current instruction; after each turn it increments `exchange_count` and persists the transcript so progress survives restarts.
+- **Scenario-driven prompts.** When a scenario is active, `prompts.build_instruction()` injects persona, vocabulary goals, and learner weaknesses into the system instruction so the LLM always role-plays the correct situation. When no scenario is active the agent falls back to the default Norwegian “menu mode” instruction augmented with retrieved memory snippets.
+- **Tool ecosystem.** Local tools (listing/selecting scenarios, tracking vocabulary, progress, and user profile) manage structured application state, while an MCP toolset (backed by `mcp_vocab_server.py`) adds external vocabulary lookup capability. The ADK planner can mix these tool types in a single reasoning loop.
+- **Design choices.** Leveraging callbacks and MCP keeps the agent modular: scenarios can evolve without touching tool code, and additional MCP servers can be registered without changing the core agent. Using SQLite for sessions offers persistence without extra infrastructure, and Gemini Live models provide low-latency, speech-capable interactions suited for language learning.
 
 ## Codebase Structure
 
-```
-.
-├── agent.py              # Agent initialization, callbacks, services
-├── tools.py              # Seven tool implementations
-├── scenarios.py          # Scenario definitions (configuration data)
-├── prompts.py            # Dynamic instruction building
-├── mcp_vocab_server.py   # (Not shown) MCP service for vocabulary lookup
-└── sessions.db           # SQLite database for session persistence
-```
+- `norsk_praksis/norsk_agent/agent.py`
+  - Declares the root `LlmAgent`, configures callbacks, registers local and MCP tools, and wires session/memory services.
+- `norsk_praksis/norsk_agent/prompts.py`
+  - Builds dynamic instructions for each scenario, embedding persona, opening lines, and learner focus areas.
+- `norsk_praksis/norsk_agent/scenarios.py`
+  - Defines the catalog of practice scenarios, their vocabularies, personas, and opening lines that drive role-play.
+- `norsk_praksis/norsk_agent/tools.py`
+  - Implements the ADK tools the agent can call (scenario selection, vocabulary lookup, progress tracking, marking practiced words, ending scenarios, user profile access).
+- `norsk_praksis/mcp_vocab_server.py`
+  - Stdio-based MCP server exposing vocabulary lookup/definition capabilities consumed through the MCP toolset.
+- `tests/test_agent.py`
+  - Smoke tests for the agent setup and scenario behaviors.
+- `Docs/`
+  - Deep architecture references (`Agent_Architecture_Diagrams.md`), annotated walkthroughs (`Agent_Deep_Dive.md`), and roadmap/spec files for each delivery phase.
+- `vocabulary.json`
+  - Shared vocabulary data backing scenarios and MCP resources.
 
-### agent.py (89 lines)
-Initializes the root agent with:
-- **System instruction**: Agent behavior specification
-- **Before-agent callback**: Context preparation (memory search, instruction building)
-- **After-agent callback**: State persistence (session serialization)
-- **Service initialization**: Session storage + memory service
-- **Tool registration**: Local tools + MCP toolset
+## Project Setup
 
-### tools.py (163 lines)
-Seven tools demonstrating different patterns:
+1. **Clone and enter the repo.**
 
-| Tool | Pattern | Purpose |
-|------|---------|---------|
-| `list_scenarios()` | Observation | Discover available scenarios |
-| `select_scenario()` | Action | Switch to new scenario, reset state |
-| `get_vocabulary()` | Observation | Retrieve vocabulary for scenario |
-| `mark_word_practiced()` | Action | Track learned words |
-| `get_progress()` | Observation | Query session metrics |
-| `end_scenario()` | Orchestration | Multi-step scenario completion, analysis, profile update |
-| `get_user_profile()` | Observation | Cross-session user statistics |
+    ```bash
+    git clone https://github.com/PubuduSaneth/NorskPraksis.git
+    cd NorskPraksis
+    ```
 
-### scenarios.py (107 lines)
-Scenario definitions as data:
-- Five scenarios (café, hotel, train station, grocery store, doctor)
-- Each with: persona, opening_line, vocabulary list
-- Configuration-driven: new scenarios need no code changes
+2. **Install Python 3.11+.** The project targets `requires-python = ">=3.11"` (see `pyproject.toml`).
+3. **Create the environment and install dependencies via uv.**
 
-### prompts.py (35 lines)
-Dynamic instruction builder:
-- Takes scenario + state
-- Marks learned words with `[LÆRT]`
-- Includes weak words from long-term memory
-- Adds continuity cue (exchange count)
+    ```bash
+    cd norsk_praksis
+    uv sync
+    ```
 
-## Key Architectural Patterns
+    - `uv sync` inspects `pyproject.toml`, creates `.venv` automatically (Python 3.11+), and installs all declared dependencies.
+    - If you still track additional packages in `requirements.txt`, run `uv add -r requirements.txt` once to import them into `pyproject.toml`, then delete the file or keep it for reference.
 
-### 1. Dynamic Context Engineering
-Instead of a static system prompt, the agent's instruction is dynamically constructed based on:
-- Current state (active scenario)
-- User progress (words practiced, completion percentage)
-- Historical data (weak words from previous sessions)
+4. **(Optional) Re-sync or check the environment.**
 
-**Benefits**: Agent behavior adapts without retraining; context window optimized per-turn.
+    ```bash
+    uv sync --frozen  # repeat only when you suspect drift or after editing pyproject.toml
+    ```
 
-### 2. Callback-Driven Lifecycle
-Agent behavior is shaped by callbacks, not hardcoded logic:
-```
-on_before_agent() → Prepare context (memory + instruction)
-                  ↓
-             Agent reasoning
-                  ↓
-on_after_agent() → Persist state (session + memory)
-```
+5. **Configure credentials.** Create a `.env` (use `Docs/SPEC_N_ROADMAPs/SPEC_DEV.md` as a template) and set the required Google ADK keys, for example `GOOGLE_API_KEY` or Vertex AI credentials.
 
-**Benefits**: Clean separation of concerns; extensible without modifying agent.
+6. **Start the ADK web UI through uv.**
 
-### 3. Tool-Based State Mutation
-All state changes happen through tools, never directly:
-```python
-# ✓ Tool modifies state
-def select_scenario(tool_context, scenario_id):
-    tool_context.state["active_scenario_id"] = scenario_id
+    ```bash
+    uv run adk web . --no-reload
+    ```
 
-# ✗ Not directly in callbacks
-```
+    Running through `uv run` guarantees the correct virtual environment and launches the Agent Dev Kit interface exposing the `norsk_agent` profile.
 
-**Benefits**: Auditability; consistency; understandability.
+7. **Smoke test.** Connect to `norsk_agent` in the UI (or via `adk cli run norsk_agent`) and ensure the agent greets you in Norwegian, listing available scenarios. If MCP vocabulary lookups fail, confirm that `uv run ... mcp_vocab_server.py` can start on your machine.
 
-### 4. Two-Tier Memory
-- **Short-term**: Session state (in-memory, fast)
-- **Long-term**: Persistent storage (database, queryable)
+## User Guide
 
-Memory informs behavior during context preparation, not during reasoning.
+- **Launching the tutor.** Run `uv run adk web . --no-reload` from the `norsk_praksis` directory, open the browser UI that ADK prints (usually `http://localhost:8000`), and select `norsk_agent`. Ensure your microphone is granted access if you want voice mode.
 
-### 5. MCP Integration
-External tools are accessed through the Model Context Protocol:
-```python
-mcp_toolset = McpToolset(
-    connection_params=StdioServerParameters(
-        command="uv",
-        args=["run", "mcp_vocab_server.py"]
-    )
-)
-```
+- **Selecting a scenario.** Start in “menu mode”: ask “Hva kan jeg øve på?” or click the tool shortcut so the agent calls `list_scenarios`. Say the scenario name (e.g., “Jeg vil øve på kafé”), and the agent will call `select_scenario` to switch personas and start the role-play with the appropriate opening line.
 
-**Benefits**: Decoupling; extensibility; tool swappability.
+- **Practicing vocabulary.** During the scenario, request help (“Jeg trenger vokabular”) so the agent invokes `get_vocabulary` for focused phrases. As you speak, the agent uses `mark_word_practiced` to note words you mastered; you can ask “Hvordan går det?” to trigger `get_progress` for completion stats.
 
-## Learning Outcomes
+- **Managing sessions and memory.** Each exchange updates `exchange_count` and saves a session record. If you say “Jeg er ferdig” the agent calls `end_scenario`, resets state, and stores weak words for the next session. On the next visit the agent may remind you of unfinished vocabulary using the retrieved memory snippets.
 
-After studying this agent and documentation, you should understand:
-
-1. **How agents work**
-   - Perception → Reasoning → Action → Persistence loop
-   - Tool invocation and state management
-   - Callback-driven lifecycle
-
-2. **Tool design**
-   - Single responsibility principle
-   - Observation vs. action vs. orchestration tools
-   - Error handling and validation
-
-3. **Context engineering**
-   - Dynamic instruction generation
-   - State evolution and queries
-   - Session vs. user-level concerns
-
-4. **Memory architectures**
-   - Short-term (session) vs. long-term (persistent)
-   - Memory-informed behavior
-   - Cross-session continuity
-
-5. **Interoperability**
-   - Model Context Protocol basics
-   - Tool discovery and composition
-   - Graceful degradation
-
-## Running the Agent
-
-(Assuming Google ADK environment is set up)
-
-```bash
-python -m agent
-```
-
-The agent will:
-1. Load scenarios from `scenarios.py`
-2. Initialize SQLite session storage
-3. Start listening for user input
-4. On each turn:
-   - Search memory for personalization
-   - Build dynamic instruction
-   - Call Gemini 2.5 Flash for reasoning
-   - Execute tools as needed
-   - Persist session to memory
-
-## Key Files for Understanding
-
-| Document | Best for | Time |
-|----------|----------|------|
-| Agent_Development_Guide.md | Concepts + examples | 30-45 min |
-| Agent_Deep_Dive.md | Line-by-line code analysis | 45-60 min |
-| Agent_Architecture_Diagrams.md | Visual understanding | 20-30 min |
-
-**Suggested reading order:**
-1. Start with **Agent_Development_Guide.md** to understand concepts
-2. Review **Agent_Architecture_Diagrams.md** for visual intuition
-3. Deep dive into **Agent_Deep_Dive.md** for implementation details
-4. Reference the actual code as you read each section
-
-## Architectural Decisions and Rationales
-
-### Why SQLite for Sessions?
-- Persistent across process restarts
-- Simple setup (no external database)
-- Good enough for single-user demo
-- (Production would use managed database)
-
-### Why InMemoryMemoryService for Long-Term Memory?
-- Demonstrates memory pattern without complexity
-- (Production would use vector database for semantic search)
-
-### Why Callbacks Instead of Direct State Management?
-- Separates concerns (context ≠ reasoning ≠ persistence)
-- Easier to test and extend
-- Agent core unchanged when adding new behavior
-
-### Why Dynamic Instructions?
-- Context-aware behavior without retraining
-- Efficient (no need to include irrelevant information)
-- Enables in-context learning (marking `[LÆRT]` words)
-
-### Why MCP for External Tools?
-- Standard protocol (not proprietary)
-- Decoupled (external service independent)
-- Composable (multiple MCP servers)
-- Accessible (JSON-RPC over stdio)
-
-## Extending the Agent
-
-### Add a New Scenario
-1. Edit `scenarios.py`: Add entry to `SCENARIOS` dict
-2. Done! No code changes needed.
-
-### Add a New Tool
-1. Create function in `tools.py` following tool patterns
-2. Register in `agent.py`: Add to `tools=[]` list
-3. Update instruction to mention when to use it
-
-### Change Agent Behavior
-1. Edit `prompts.py`: Modify `build_instruction()` to add new context
-2. Agent automatically uses enhanced instruction
-3. No retraining needed!
-
-### Integrate New MCP Service
-1. Create MCP server (follows server spec)
-2. Create McpToolset with connection params
-3. Register in agent tools list
-4. Done! Tools automatically discovered.
-
-## Troubleshooting
-
-**Agent doesn't remember previous sessions?**
-- Check that `sessions.db` is being persisted
-- Verify `on_after_agent` is being called
-- Check memory service implementation
-
-**Agent ignores vocabulary status `[LÆRT]`?**
-- Verify `build_instruction()` is marking words
-- Check agent instruction actually includes vocabulary list
-- Agent might not be looking at words (confirm in instruction)
-
-**MCP tool not available?**
-- Verify external server is running: `uv run mcp_vocab_server.py`
-- Check stdio connection params match server expectations
-- Examine agent logs for MCP connection errors
-
-## References
-
-- **Google ADK Documentation**: ADK concepts and API
-- **Model Context Protocol (MCP)**: Tool protocol specification
-- **Anthropic Agents Documentation**: Building agents with Claude
-- **This codebase**: Real-world implementation example
-
----
-
-**Last Updated**: March 2025
-**Version**: 1.0
-**Author**: Educational example using Google ADK
+- **Troubleshooting tips.**
+  - If tool calls fail, confirm the MCP vocabulary server is running (ADK spawns it through `uv`; installing `uv` via `pip install uv` may be necessary).
+  - If the agent stays in menu mode, verify that `scenarios.py` includes the scenario ID you requested.
+  - To reset progress, delete `norsk_praksis/sessions.db` (clears session history) or remove the corresponding rows via the SQLite CLI.
