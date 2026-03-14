@@ -38,7 +38,7 @@ ASCII diagrams and visual representations:
 ## Codebase Structure
 
 ```
-.
+norsk_praksis/norsk_agent
 ├── agent.py              # Agent initialization, callbacks, services
 ├── tools.py              # Seven tool implementations
 ├── scenarios.py          # Scenario definitions (configuration data)

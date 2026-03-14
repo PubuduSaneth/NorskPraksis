@@ -24,14 +24,22 @@ The system is built on the Google Agent Development Kit (ADK) and centers on a s
 
 ## Codebase Structure
 
-- `norsk_praksis/norsk_agent/agent.py` – Declares the root `LlmAgent`, configures callbacks, registers local and MCP tools, and wires session/memory services.
-- `norsk_praksis/norsk_agent/prompts.py` – Builds dynamic instructions for each scenario, embedding persona, opening lines, and learner focus areas.
-- `norsk_praksis/norsk_agent/scenarios.py` – Defines the catalog of practice scenarios, their vocabularies, personas, and opening lines that drive role-play.
-- `norsk_praksis/norsk_agent/tools.py` – Implements the ADK tools the agent can call (scenario selection, vocabulary lookup, progress tracking, marking practiced words, ending scenarios, user profile access).
-- `norsk_praksis/mcp_vocab_server.py` – Stdio-based MCP server exposing vocabulary lookup/definition capabilities consumed through the MCP toolset.
-- `tests/test_agent.py` – Smoke tests for the agent setup and scenario behaviors.
-- `Docs/` – Deep architecture references (`Agent_Architecture_Diagrams.md`), annotated walkthroughs (`Agent_Deep_Dive.md`), and roadmap/spec files for each delivery phase.
-- `vocabulary.json` – Shared vocabulary data backing scenarios and MCP resources.
+- `norsk_praksis/norsk_agent/agent.py`
+  - Declares the root `LlmAgent`, configures callbacks, registers local and MCP tools, and wires session/memory services.
+- `norsk_praksis/norsk_agent/prompts.py`
+  - Builds dynamic instructions for each scenario, embedding persona, opening lines, and learner focus areas.
+- `norsk_praksis/norsk_agent/scenarios.py`
+  - Defines the catalog of practice scenarios, their vocabularies, personas, and opening lines that drive role-play.
+- `norsk_praksis/norsk_agent/tools.py`
+  - Implements the ADK tools the agent can call (scenario selection, vocabulary lookup, progress tracking, marking practiced words, ending scenarios, user profile access).
+- `norsk_praksis/mcp_vocab_server.py`
+  - Stdio-based MCP server exposing vocabulary lookup/definition capabilities consumed through the MCP toolset.
+- `tests/test_agent.py`
+  - Smoke tests for the agent setup and scenario behaviors.
+- `Docs/`
+  - Deep architecture references (`Agent_Architecture_Diagrams.md`), annotated walkthroughs (`Agent_Deep_Dive.md`), and roadmap/spec files for each delivery phase.
+- `vocabulary.json`
+  - Shared vocabulary data backing scenarios and MCP resources.
 
 ## Project Setup
 
